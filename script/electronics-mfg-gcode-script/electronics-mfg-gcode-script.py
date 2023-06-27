@@ -26,14 +26,19 @@ def run(context):
         
         # Get path of CAM template
         folder = os.path.dirname(os.path.abspath(__file__))
-        template_name = "face.f3dhsm-template"
+        # template_name = "face.f3dhsm-template"
+        template_name = "PCB CONTOUR SETH.f3dhsm-template"
         template_abs_path = os.path.join(folder, template_name)
 
         # Grab appropriate bodies
         # 1. Board (including cutouts?)
         # 2. Traces
         # Random test bdoy
-        brep_body_test =cam_product.designRootOccurrence.bRepBodies.item(0)
+        brep_body = ui.selectEntity('Select copper geometry to engrave', 'Bodies')
+        
+        selected_brep_body = adsk.fusion.BRepBody.cast(brep_body.entity)
+        ui.messageBox(str(selected_brep_body.name))
+        # selected_brep_body =cam_product.designRootOccurrence.bRepBodies.item(0)
 
         # Name the setup
         setup_name = "Melisa Setup"
@@ -41,7 +46,8 @@ def run(context):
         # Name the operation
         operation_name = "Melisa operation"
 
-        create_setup(cam_product=cam_product, brep_body=brep_body_test, setup_name=setup_name)
+        setup = create_setup(cam_product=cam_product, brep_body=selected_brep_body, setup_name=setup_name)
+        
         create_new_operation(cam_product=cam_product, templateFilename=template_abs_path, operation_name=operation_name)
 
     except:
@@ -97,11 +103,26 @@ def create_new_operation(cam_product, templateFilename, operation_name):
             # Add the template to each setup.
             results = setup.createFromTemplate(templateFilename)
 
+            """
+            cadcontours2dParam: adsk.cam.CadContours2dParameterValue = input.parameters.itemByName('contours').value
+            chains = cadcontours2dParam.getCurveSelections()
+            # calculate and add a new silhouette curve to the geometry selection list
+            chains.createNewSilhouetteSelection()
+            cadcontours2dParam.applyCurveSelections(chains)
+            """
+
             # Get the operation that was created. What's created will
             # vary depending on what's defined in the template so you
             # may need more logic to find the result you want.
             operation = results.item(0)
 
+            """
+            # Get operation parameter
+            cadcontours2dParam: adsk.cam.CadContours2dParameterValue = operation.parameters.itemByName('contours').value
+            chains = cadcontours2dParam.getCurveSelections()
+            chains.createNewSilhouetteSelection()
+            cadcontours2dParam.applyCurveSelections(chains)
+            """
             # Change the operation name
             operation.name = operation_name
         
