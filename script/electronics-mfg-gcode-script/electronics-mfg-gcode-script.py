@@ -6,6 +6,7 @@ import adsk.core, adsk.fusion, adsk.cam, traceback, os
 
 
 def run(context):
+    global ui
     ui = None
     try:
         
@@ -40,15 +41,20 @@ def run(context):
         ui.messageBox(str(selected_brep_body.name))
         # selected_brep_body =cam_product.designRootOccurrence.bRepBodies.item(0)
 
-        # Name the setup
-        setup_name = "Melisa Setup"
+
 
         # Name the operation
-        operation_name = "Melisa operation"
+        operation_name = "PCB Engrave"
 
-        setup = create_setup(cam_product=cam_product, brep_body=selected_brep_body, setup_name=setup_name)
-        
-        create_new_operation(cam_product=cam_product, templateFilename=template_abs_path, operation_name=operation_name)
+        # Create setup
+        # setup_name = "Test Setup" # Name the setup
+        # setup = create_setup(cam_product=cam_product, brep_body=selected_brep_body, setup_name=setup_name)
+        """
+        for item in cam.setups:
+            if setup.isActive:
+                setup = item
+        """
+        create_new_operation(cam_product=cam_product, templateFilename=template_abs_path, operation_name=operation_name, bodyToMachine = selected_brep_body)
 
     except:
         if ui:
@@ -86,45 +92,53 @@ def create_setup(cam_product, brep_body, setup_name):
 
     return setup
 
-def create_new_operation(cam_product, templateFilename, operation_name):
-        # List of all setups
-        setups = cam_product.setups
+def create_new_operation(cam_product, templateFilename, operation_name, bodyToMachine):
         
-        # Specify the full filename of the template.
-        #templateFilename = 'E:\\face.f3dhsm-template'
-        
-        # Check if the template exists (from the path specified above). Show an error if it doesn't exist.
-        if not os.path.exists(templateFilename):
-            ui.messageBox("The template '" + templateFilename + "' does not exist")
-            return
+    # List of all setups
+    # setups:adsk.cam.Setups = cam_product.setups
+    
+    # Specify the full filename of the template.
+    #templateFilename = 'E:\\face.f3dhsm-template'
+    
+    # Check if the template exists (from the path specified above). Show an error if it doesn't exist.
+    if not os.path.exists(templateFilename):
+        ui.messageBox("The template '" + templateFilename + "' does not exist")
+        return
 
-        # Go through each setup in the document
-        for setup in setups:
-            # Add the template to each setup.
-            results = setup.createFromTemplate(templateFilename)
+    # Go through each setup in the document
+    #for setup in setups:
+        # Add the template to each setup.
+    
+    # setup : adsk.cam.Setup = setups.item(setups.count -1)
+    for item in cam_product.setups:
+        if item.isActive:
+            setup = item
+    results = setup.createFromTemplate(templateFilename)
 
-            """
-            cadcontours2dParam: adsk.cam.CadContours2dParameterValue = input.parameters.itemByName('contours').value
-            chains = cadcontours2dParam.getCurveSelections()
-            # calculate and add a new silhouette curve to the geometry selection list
-            chains.createNewSilhouetteSelection()
-            cadcontours2dParam.applyCurveSelections(chains)
-            """
+    """
+    cadcontours2dParam: adsk.cam.CadContours2dParameterValue = input.parameters.itemByName('contours').value
+    chains = cadcontours2dParam.getCurveSelections()
+    # calculate and add a new silhouette curve to the geometry selection list
+    chains.createNewSilhouetteSelection()
+    cadcontours2dParam.applyCurveSelections(chains)
+    """
 
-            # Get the operation that was created. What's created will
-            # vary depending on what's defined in the template so you
-            # may need more logic to find the result you want.
-            operation = results.item(0)
+    # Get the operation that was created. What's created will
+    # vary depending on what's defined in the template so you
+    # may need more logic to find the result you want.
+    operation: adsk.cam.Operation = results.item(0)
 
-            """
-            # Get operation parameter
-            cadcontours2dParam: adsk.cam.CadContours2dParameterValue = operation.parameters.itemByName('contours').value
-            chains = cadcontours2dParam.getCurveSelections()
-            chains.createNewSilhouetteSelection()
-            cadcontours2dParam.applyCurveSelections(chains)
-            """
-            # Change the operation name
-            operation.name = operation_name
-        
-        # Generate all toolpaths, skipping any that are already valid
-        cam_product.generateAllToolpaths(True)
+    # Get operation parameter
+    cadcontours2dParam: adsk.cam.CadContours2dParameterValue = operation.parameters.itemByName('contours').value
+    chains = cadcontours2dParam.getCurveSelections()
+    chains.item(0).inputGeometry = [bodyToMachine]
+    cadcontours2dParam.applyCurveSelections(chains)
+
+
+    operation. parameters.itemByName('bottomHeight_mode').expression = "'from surface bottom'"
+
+    # Change the operation name
+    operation.name = operation_name
+    
+    # Generate all toolpaths, skipping any that are already valid
+    cam_product.generateAllToolpaths(True)
